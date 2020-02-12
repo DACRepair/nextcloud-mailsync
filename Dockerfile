@@ -17,7 +17,7 @@ ENV APP_TEMP temp/
 ENV APP_REFRESH  300
 ENV APP_QUIET false
 
-RUN apk --no-cache add python3 curl
+RUN apk --no-cache add python3 curl libxslt
 
 WORKDIR /opt
 COPY server.py .
