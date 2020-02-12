@@ -17,6 +17,7 @@ EMAIL_SSL = os.getenv('EMAIL_SSL', 'false').lower() == 'true'
 EMAIL_USER = os.getenv('EMAIL_USER', 'mailuser')
 EMAIL_PASS = os.getenv('EMAIL_PASS', 'maillpassword')
 EMAIL_FOLDER = os.getenv('EMAIL_FOLDER', 'INBOX')
+EMAIL_READONLY = os.getenv('EMAIL_READONLY').lower() == 'true'
 
 # WebDAV Config
 WEBDAV_URL = os.getenv('WEBDAV_URL', 'http://webdav/')
@@ -42,7 +43,7 @@ os.mkdir(temp_dir) if not os.path.isdir(temp_dir) else None
 # Email
 mail = IMAPClient(EMAIL_HOST, EMAIL_PORT, use_uid=True, ssl=EMAIL_SSL)
 mail.login(EMAIL_USER, EMAIL_PASS)
-mail.select_folder(EMAIL_FOLDER, readonly=True)
+mail.select_folder(EMAIL_FOLDER, readonly=EMAIL_READONLY)
 
 # WebDAV
 webdav = wdcli.Client({'webdav_hostname': WEBDAV_URL, 'webdav_login': WEBDAV_USER, 'webdav_password': WEBDAV_PASS})
