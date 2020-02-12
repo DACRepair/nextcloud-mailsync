@@ -27,5 +27,5 @@ RUN apk --no-cache add --virtual .deps curl-dev python3-dev libressl-dev gcc lib
     && pip3 install -r requirements.txt \
     && apk del .deps
 
-ENTRYPOINT ['python3']
-CMD ["./server.py"]
+ENTRYPOINT python3
+CMD ./server.py
