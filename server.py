@@ -33,6 +33,7 @@ WEBDAV_PATH = os.getenv('WEBDAV_PATH', '.')
 
 # App Config
 APP_TEMP = os.getenv('APP_TEMP', 'temp/')
+APP_CLEAN = os.getenv('APP_CLEAN', 'false').lower() == 'true'
 APP_REFRESH = int(os.getenv('APP_REFRESH', '300'))
 APP_QUIET = not os.getenv('APP_QUIET', 'false').lower() == 'true'
 
@@ -90,9 +91,9 @@ def do_sync():
                 webdav.upload(dav_path, file_path)
                 if APP_QUIET:
                     print('Uploaded: "{}". Message: "{}" From: {}'.format(dav_path, subject, from_addr))
-
-    for file in glob(temp_dir.rstrip('/') + '/*'):
-        os.remove(os.path.normpath(file))
+    if APP_CLEAN:
+        for file in glob(temp_dir.rstrip('/') + '/*'):
+            os.remove(os.path.normpath(file))
 
 
 while True:
