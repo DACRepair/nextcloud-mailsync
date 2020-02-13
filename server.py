@@ -16,8 +16,8 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', '993'))
 EMAIL_SSL = os.getenv('EMAIL_SSL', 'false').lower() == 'true'
 EMAIL_TLS = os.getenv('EMAIL_TLS', 'false').lower() == 'true'
 
-EMAIL_USER = os.getenv('EMAIL_USER', 'mailuser')
-EMAIL_PASS = os.getenv('EMAIL_PASS', 'maillpassword')
+EMAIL_USER = os.getenv('EMAIL_USER', '')
+EMAIL_PASS = os.getenv('EMAIL_PASS', '')
 
 EMAIL_FOLDER = os.getenv('EMAIL_FOLDER', 'INBOX')
 EMAIL_READONLY = os.getenv('EMAIL_READONLY').lower() == 'true'
@@ -44,10 +44,15 @@ os.mkdir(temp_dir) if not os.path.isdir(temp_dir) else None
 
 # Setup Clients
 # Email
+if APP_QUIET:
+    print("Mail Connection: {}:{} SSL: {} TLS: {}".format(EMAIL_HOST, EMAIL_PORT, 1 if EMAIL_SSL else 0, 1 if EMAIL_TLS else 0))
 mail = IMAPClient(EMAIL_HOST, EMAIL_PORT, use_uid=True, ssl=EMAIL_SSL)
 if EMAIL_TLS:
     mail.starttls()
-mail.login(EMAIL_USER, EMAIL_PASS)
+if len(EMAIL_USER) > 0:
+    if APP_QUIET:
+        print("Logging in as: {}".format(EMAIL_USER))
+    mail.login(EMAIL_USER, EMAIL_PASS)
 mail.select_folder(EMAIL_FOLDER, readonly=EMAIL_READONLY)
 
 # WebDAV
