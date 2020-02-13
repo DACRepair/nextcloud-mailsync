@@ -1,21 +1,25 @@
 FROM alpine:latest
-ENV EMAIL_HOST mail
-ENV EMAIL_PORT 993
-ENV EMAIL_SSL false
-ENV EMAIL_USER mailuser
-ENV EMAIL_PASS mailpassword
-ENV EMAIL_FOLDER INBOX
-ENV EMAIL_READONLY false
+ENV EMAIL_HOST mail # The hostname of the mail server
+ENV EMAIL_PORT 993 # The port of the mail server (IMAP)
+ENV EMAIL_SSL false # Use SSL
+ENV EMAIL_TLS false # Use TLS
+ENV EMAIL_USER "" # Username to log into the mail server, if left blank it will disable auth
+ENV EMAIL_PASS "" # Password to log into the mail server
+ENV EMAIL_FOLDER INBOX # Folder to look for mails
+ENV EMAIL_READONLY false # Read only means it will read mails without changing state (IE marking as read when iterating)
 
-ENV WEBDAV_URL http://webdav/
-ENV WEBDAV_VERIFY false
-ENV WEBDAV_USER webdavuser
-ENV WEBDAV_PASS webdavpass
-ENV WEBDAV_PATH .
+ENV WEBDAV_URL http://webdav/ # Base URL to WebDAV
+ENV WEBDAV_VERIFY false # Verify SSL (may be needed for LE depending on CAs available to container)
+ENV WEBDAV_USER webdavuser # WebDAV User
+ENV WEBDAV_PASS webdavpass # WebDAV Password
+ENV WEBDAV_PATH . # Path to upload to (can be relative)
 
-ENV APP_TEMP temp/
-ENV APP_REFRESH  300
-ENV APP_QUIET false
+ENV APP_TEMP temp/ # Path where the app downloads the attachments to
+ENV APP_CLEAN true # Clean temp path on each pass
+ENV APP_REFRESH  300 # How often to check the mail box and upload files
+ENV APP_QUIET false # turn off printing to STDOUT
+
+#######################################################################
 
 RUN apk --no-cache add python3 curl libxslt
 
