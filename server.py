@@ -12,10 +12,13 @@ from webdav import client as wdcli
 # Email Config
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'mail')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '993'))
+
 EMAIL_SSL = os.getenv('EMAIL_SSL', 'false').lower() == 'true'
+EMAIL_TLS = os.getenv('EMAIL_TLS', 'false').lower() == 'true'
 
 EMAIL_USER = os.getenv('EMAIL_USER', 'mailuser')
 EMAIL_PASS = os.getenv('EMAIL_PASS', 'maillpassword')
+
 EMAIL_FOLDER = os.getenv('EMAIL_FOLDER', 'INBOX')
 EMAIL_READONLY = os.getenv('EMAIL_READONLY').lower() == 'true'
 
@@ -42,6 +45,8 @@ os.mkdir(temp_dir) if not os.path.isdir(temp_dir) else None
 # Setup Clients
 # Email
 mail = IMAPClient(EMAIL_HOST, EMAIL_PORT, use_uid=True, ssl=EMAIL_SSL)
+if EMAIL_TLS:
+    mail.starttls()
 mail.login(EMAIL_USER, EMAIL_PASS)
 mail.select_folder(EMAIL_FOLDER, readonly=EMAIL_READONLY)
 
