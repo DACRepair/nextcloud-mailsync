@@ -21,7 +21,7 @@ ENV APP_QUIET false # turn off printing to STDOUT
 
 #######################################################################
 
-RUN apk --no-cache add python3 curl libxslt
+RUN apk --no-cache add curl libxslt openssl python3
 
 WORKDIR /opt
 COPY server.py .
