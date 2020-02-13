@@ -18,7 +18,6 @@ EMAIL_TLS = os.getenv('EMAIL_TLS', 'false').lower() == 'true'
 
 EMAIL_USER = os.getenv('EMAIL_USER', '')
 EMAIL_PASS = os.getenv('EMAIL_PASS', '')
-
 EMAIL_FOLDER = os.getenv('EMAIL_FOLDER', 'INBOX')
 EMAIL_READONLY = os.getenv('EMAIL_READONLY').lower() == 'true'
 
@@ -32,6 +31,7 @@ WEBDAV_PASS = os.getenv('WEBDAV_PASS', 'webdavpass')
 WEBDAV_PATH = os.getenv('WEBDAV_PATH', '.')
 
 # App Config
+APP_ONCE = os.getenv('APP_ONCE', 'false').lower() == 'true'
 APP_TEMP = os.getenv('APP_TEMP', 'temp/')
 APP_CLEAN = os.getenv('APP_CLEAN', 'false').lower() == 'true'
 APP_REFRESH = int(os.getenv('APP_REFRESH', '300'))
@@ -39,14 +39,15 @@ APP_QUIET = not os.getenv('APP_QUIET', 'false').lower() == 'true'
 
 #################################################################
 #################################################################
-# Set up temp
+# Set up temp folder
 temp_dir = os.path.normpath(APP_TEMP)
 os.mkdir(temp_dir) if not os.path.isdir(temp_dir) else None
 
 # Setup Clients
 # Email
 if APP_QUIET:
-    print("Mail Connection: {}:{} SSL: {} TLS: {}".format(EMAIL_HOST, EMAIL_PORT, 1 if EMAIL_SSL else 0, 1 if EMAIL_TLS else 0))
+    msg = "Mail Connection: {}:{} SSL: {} TLS: {}"
+    print(msg.format(EMAIL_HOST, EMAIL_PORT, 1 if EMAIL_SSL else 0, 1 if EMAIL_TLS else 0))
 mail = IMAPClient(EMAIL_HOST, EMAIL_PORT, use_uid=True, ssl=EMAIL_SSL)
 if EMAIL_TLS:
     mail.starttls()
@@ -65,8 +66,8 @@ webdav.mkdir(WEBDAV_PATH) if not webdav.check(WEBDAV_PATH) else None
 
 #################################################################
 #################################################################
-def do_sync():
-    if APP_QUIET:
+def do_sync(clean: bool = False, quiet: bool = False):
+    if quiet:
         print("Syncing Email Attachments")
     messages = mail.search('UNSEEN')
     for msg_id, data in mail.fetch(messages, ['RFC822']).items():
@@ -89,13 +90,16 @@ def do_sync():
                     fp.close()
                 dav_path = WEBDAV_PATH.rstrip('/') + '/' + date + "-" + file_name
                 webdav.upload(dav_path, file_path)
-                if APP_QUIET:
+                if quiet:
                     print('Uploaded: "{}". Message: "{}" From: {}'.format(dav_path, subject, from_addr))
-    if APP_CLEAN:
+    if clean:
         for file in glob(temp_dir.rstrip('/') + '/*'):
             os.remove(os.path.normpath(file))
 
 
 while True:
-    do_sync()
-    time.sleep(APP_REFRESH)
+    do_sync(APP_CLEAN, APP_QUIET)
+    if APP_ONCE:
+        break
+    else:
+        time.sleep(APP_REFRESH)
