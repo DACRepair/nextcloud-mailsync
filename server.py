@@ -58,6 +58,9 @@ if len(EMAIL_USER) > 0:
 mail.select_folder(EMAIL_FOLDER, readonly=EMAIL_READONLY)
 
 # WebDAV
+if APP_QUIET:
+    msg = "Connecting to WebDAV: {} with user: {}. Save path: {}"
+    print(msg.format(WEBDAV_URL, WEBDAV_USER, WEBDAV_PATH))
 webdav = wdcli.Client({'webdav_hostname': WEBDAV_URL, 'webdav_login': WEBDAV_USER, 'webdav_password': WEBDAV_PASS})
 webdav.default_options['SSL_VERIFYHOST'] = WEBDAV_VERIFY
 webdav.default_options['SSL_VERIFYPEER'] = WEBDAV_VERIFY
@@ -69,8 +72,7 @@ webdav.mkdir(WEBDAV_PATH) if not webdav.check(WEBDAV_PATH) else None
 def do_sync(clean: bool = False, quiet: bool = False):
     if quiet:
         print("Syncing Email Attachments")
-    messages = mail.search('UNSEEN')
-    for msg_id, data in mail.fetch(messages, ['RFC822']).items():
+    for msg_id, data in mail.fetch(mail.search('UNSEEN'), ['RFC822']).items():
         data = email.message_from_bytes(data[b'RFC822'])
 
         date = datetime.datetime.strptime(str(data.get('Date')).split(' -')[0], "%a, %d %b %Y %H:%M:%S")
