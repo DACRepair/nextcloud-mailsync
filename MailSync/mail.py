@@ -7,43 +7,8 @@ import tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from imapclient import IMAPClient
-from smtplib import SMTP
+from smtplib import SMTP, SMTP_SSL
 from bs4 import BeautifulSoup
-
-
-class MailConfig:
-    imap_host: str = ''
-    imap_port: int = 993
-    imap_ssl: bool = False
-    imap_tls: bool = False
-
-    imap_user: str = ''
-    imap_pass: str = ''
-
-    imap_folder: str = 'INBOX'
-    imap_ro: bool = True
-
-    smtp_host: str = ''
-    smtp_port: int = 25
-    smtp_tls: bool = False
-
-    smtp_auth: bool = True
-    smtp_user: str = ''
-    smtp_pass: str = ''
-
-    temp_path: str = os.path.normpath(tempfile.mkdtemp())
-    temp_clean: bool = True
-
-    def __init__(self, **kwargs):
-        for key in kwargs.keys():
-            if hasattr(self, key):
-                setattr(self, key, kwargs.get(key))
-
-    def __str__(self):
-        return str("Mail Config Object")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class MailMessage:
@@ -66,33 +31,53 @@ class MailMessage:
 
 
 class Mail:
-    def __init__(self, config: MailConfig):
-        self.config = config
+    def __init__(self, email_host: str, email_user: str, email_pass: str, imap_port: int = 0, imap_ssl: bool = False,
+                 imap_tls: bool = False, imap_folder: str = 'INBOX', imap_ro: bool = True, smtp_host: str = None,
+                 smtp_user: str = None, smtp_pass: str = None, smtp_port: int = 0, smtp_ssl: bool = False,
+                 smtp_tls: bool = False, email_addr: str = None):
+
+        # Prep defaults
+        self.temp_path: str = os.path.normpath(tempfile.mkdtemp())
+        self.temp_clean: bool = True
+
+        if imap_port == 0:
+            imap_port = 993 if imap_ssl else 143
+        if smtp_port == 0:
+            smtp_port = 465 if smtp_ssl else 25
+
+        smtp_host = email_host if smtp_host is None else smtp_host
+
+        if smtp_user is None:
+            smtp_user = email_user
+            smtp_pass = email_pass
+
+        self.email_addr = email_addr if email_addr is not None else smtp_user
 
         # IMAP
-        if len(config.imap_host) > 0:
-            self._imap = IMAPClient(config.imap_host, config.imap_port, use_uid=True, ssl=config.imap_ssl)
-            if config.imap_tls:
-                self._imap.starttls()
-            if len(config.imap_user) > 0:
-                self._imap.login(config.imap_user, config.imap_pass)
-            self._imap.select_folder(config.imap_folder, readonly=config.imap_ro)
+        self._imap = IMAPClient(email_host, imap_port, use_uid=True, ssl=imap_ssl)
+        if imap_tls:
+            self._imap.starttls()
+        if len(email_user) > 0:
+            self._imap.login(email_user, email_pass)
+        self._imap.select_folder(imap_folder, readonly=imap_ro)
 
         # SMTP
-        smtp_host = config.smtp_host if len(config.smtp_host) > 0 else config.imap_host
-        self._smtp = SMTP(smtp_host, config.smtp_port)
-        if config.smtp_tls:
-            self._smtp.starttls()
-        self.config.smtp_user = config.smtp_user if len(config.smtp_user) > 0 else config.imap_user
-        if len(self.config.smtp_user) > 0 and config.smtp_auth:
-            smtp_password = config.smtp_pass if len(config.smtp_pass) else config.imap_pass
-            self._smtp.login(self.config.smtp_user, smtp_password)
+        if smtp_ssl:
+            self._smtp = SMTP_SSL(smtp_host)
+            self._smtp.connect(smtp_host, smtp_port)
+        else:
+            self._smtp = SMTP(smtp_host)
+            self._smtp.connect(smtp_host, smtp_port)
+            if smtp_tls:
+                self._smtp.starttls()
+        if len(smtp_user) > 0:
+            self._smtp.login(smtp_user, smtp_pass)
 
     def __del__(self):
-        if self.config.temp_clean:
-            for file in glob.glob(os.path.normpath(self.config.temp_path + "/*")):
+        if self.temp_clean:
+            for file in glob.glob(os.path.normpath(self.temp_path + "/*")):
                 os.remove(file)
-            os.rmdir(self.config.temp_path)
+            os.rmdir(self.temp_path)
 
     @staticmethod
     def _htmltostring(html: str) -> str:
@@ -161,7 +146,7 @@ class Mail:
                     continue
                 file_name = part.get_filename()
                 if bool(file_name) and file_name in attachment:
-                    file_path = os.path.normpath(self.config.temp_path + "/" + file_name)
+                    file_path = os.path.normpath(self.temp_path + "/" + file_name)
                     with open(file_path, 'wb') as fp:
                         fp.write(part.get_payload(decode=True))
                         fp.close()
@@ -173,12 +158,12 @@ class Mail:
             to_addr = ", ".join(to_addr)
         message = MIMEMultipart("alternative")
         message['Subject'] = subject
-        message['From'] = self.config.smtp_user
+        message['From'] = self.email_addr
         message['To'] = to_addr
         message.attach(MIMEText(self._htmltostring(msg), "plain"))
         message.attach(MIMEText(msg, "html"))
         try:
-            self._smtp.sendmail(self.config.smtp_user, to_addr, message.as_string())
+            self._smtp.sendmail(self.email_addr, to_addr, message.as_string())
             return True
         except:
             return False
