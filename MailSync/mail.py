@@ -15,7 +15,8 @@ from jinja2 import Template
 
 class MailMessage:
     def __init__(self, **kwargs):
-        self.id = kwargs.get('id') if 'id' in kwargs.keys() else None
+        self.id = kwargs.get('id') if 'id' in kwargs.keys() else Non
+        self.message_id = kwargs.get('message_id') if 'message_id' in kwargs.keys() else None
         self.subject = kwargs.get('subject') if 'subject' in kwargs.keys() else None
         self.body_plain = kwargs.get('body_plain') if 'body_plain' in kwargs.keys() else None
         self.body_html = kwargs.get('body_html') if 'body_html' in kwargs.keys() else None
@@ -73,12 +74,12 @@ class Mail:
         self.email_addr = email_addr if email_addr is not None else smtp_user
 
         # IMAP
-        self._imap = IMAPClient(email_host, imap_port, use_uid=True, ssl=imap_ssl)
+        self.imap = IMAPClient(email_host, imap_port, use_uid=True, ssl=imap_ssl)
         if imap_tls:
-            self._imap.starttls()
+            self.imap.starttls()
         if len(email_user) > 0:
-            self._imap.login(email_user, email_pass)
-        self._imap.select_folder(imap_folder, readonly=imap_ro)
+            self.imap.login(email_user, email_pass)
+        self.imap.select_folder(imap_folder, readonly=imap_ro)
 
         # SMTP
         if smtp_ssl:
@@ -129,10 +130,10 @@ class Mail:
 
     def get_mail(self, search: str = 'UNSEEN') -> [MailMessage]:
         messages = []
-        for msg_id, data in self._imap.fetch(self._imap.search(search), ['RFC822']).items():
+        for msg_id, data in self.imap.fetch(self.imap.search(search), ['RFC822']).items():
             data = email.message_from_bytes(data[b'RFC822'])
 
-            msg_id = data.get('Message-ID')
+            message_id = data.get('Message-ID')
             date = data.get('Date')
             if date is not None:
                 date = str(data.get('Date')).split(' -')[0].split(' +')[0]
@@ -155,16 +156,17 @@ class Mail:
                 file_name = part.get_filename()
                 if bool(file_name):
                     attrs.append(file_name)
-            messages.append(MailMessage(id=msg_id, subject=subject, date=date, from_addr=from_addr, attachments=attrs,
-                                        body_plain=body_plain, body_html=body_html))
+            messages.append(
+                MailMessage(id=msg_id, message_id=message_id, subject=subject, date=date, from_addr=from_addr,
+                            attachments=attrs, body_plain=body_plain, body_html=body_html))
         return messages
 
     def get_attachment(self, msg_id: str, attachment: [list, str]) -> [tuple]:
         if not isinstance(attachment, list):
             attachment = [attachment]
         files = []
-        search = self._imap.search('(HEADER Message-ID "{}")'.format(msg_id))
-        for msg_id, data in self._imap.fetch(search, ['RFC822']).items():
+        search = self.imap.search([msg_id])
+        for msg_id, data in self.imap.fetch(search, ['RFC822']).items():
             data = email.message_from_bytes(data[b'RFC822'])
             for part in data.walk():
                 if part.get_content_maintype() == 'multipart':
