@@ -137,3 +137,4 @@ dmypy.json
 .idea
 temp
 test.py
+config.ini

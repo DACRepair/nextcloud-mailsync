@@ -4,11 +4,13 @@ import glob
 import os
 import re
 import tempfile
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from imapclient import IMAPClient
+from email.mime.text import MIMEText
 from smtplib import SMTP, SMTP_SSL
+
 from bs4 import BeautifulSoup
+from imapclient import IMAPClient
+from jinja2 import Template
 
 
 class MailMessage:
@@ -18,7 +20,7 @@ class MailMessage:
         self.body_plain = kwargs.get('body_plain') if 'body_plain' in kwargs.keys() else None
         self.body_html = kwargs.get('body_html') if 'body_html' in kwargs.keys() else None
         self.date = kwargs.get('date') if 'date' in kwargs.keys() else None
-        self.from_addr = kwargs.get('from') if 'from' in kwargs.keys() else None
+        self.from_addr = kwargs.get('from_addr') if 'from_addr' in kwargs.keys() else None
         self.attachments = kwargs.get('attachments') if 'attachments' in kwargs.keys() else []
 
     def __str__(self):
@@ -31,10 +33,27 @@ class MailMessage:
 
 
 class Mail:
-    def __init__(self, email_host: str, email_user: str, email_pass: str, imap_port: int = 0, imap_ssl: bool = False,
-                 imap_tls: bool = False, imap_folder: str = 'INBOX', imap_ro: bool = True, smtp_host: str = None,
-                 smtp_user: str = None, smtp_pass: str = None, smtp_port: int = 0, smtp_ssl: bool = False,
-                 smtp_tls: bool = False, email_addr: str = None):
+    def __init__(self, email_host: str, email_user: str, email_pass: str, email_addr: str = None, imap_port: int = 0,
+                 imap_ssl: bool = False, imap_tls: bool = False, imap_folder: str = 'INBOX', imap_ro: bool = True,
+                 smtp_host: str = None, smtp_user: str = None, smtp_pass: str = None, smtp_port: int = 0,
+                 smtp_ssl: bool = False, smtp_tls: bool = False):
+
+        # A really messy cast block to help with defaults in autoconfig
+        email_host = str(email_host) if email_host is not None else email_host
+        email_user = str(email_user) if email_user is not None else email_user
+        email_pass = str(email_pass) if email_pass is not None else email_pass
+        email_addr = str(email_addr) if email_addr is not None else email_addr
+        imap_port = int(imap_port) if imap_port is not None else imap_port
+        imap_ssl = bool(imap_ssl) if imap_ssl is not None else imap_ssl
+        imap_tls = bool(imap_tls) if imap_tls is not None else imap_tls
+        imap_folder = str(imap_folder) if imap_folder is not None else imap_folder
+        imap_ro = bool(imap_ro) if imap_ro is not None else imap_ro
+        smtp_host = str(smtp_host) if smtp_host is not None else smtp_host
+        smtp_user = str(smtp_user) if smtp_user is not None else smtp_user
+        smtp_pass = str(smtp_pass) if smtp_pass is not None else smtp_pass
+        smtp_port = int(smtp_port) if smtp_port is not None else smtp_port
+        smtp_ssl = bool(smtp_ssl) if smtp_ssl is not None else smtp_ssl
+        smtp_tls = bool(smtp_tls) if smtp_tls is not None else smtp_tls
 
         # Prep defaults
         self.temp_path: str = os.path.normpath(tempfile.mkdtemp())
@@ -102,14 +121,22 @@ class Mail:
                     break
         return string.replace('\n \n', '\n').replace('\n ', '\n')
 
+    @staticmethod
+    def render(template, **kwargs):
+        with open(template, 'r') as fp:
+            template = fp.read()
+        return Template(template).render(**kwargs)
+
     def get_mail(self, search: str = 'UNSEEN') -> [MailMessage]:
         messages = []
         for msg_id, data in self._imap.fetch(self._imap.search(search), ['RFC822']).items():
             data = email.message_from_bytes(data[b'RFC822'])
 
             msg_id = data.get('Message-ID')
-            date = str(data.get('Date')).split(' -')[0].split(' +')[0]
-            date = datetime.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S")
+            date = data.get('Date')
+            if date is not None:
+                date = str(data.get('Date')).split(' -')[0].split(' +')[0]
+                date = datetime.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S")
             subject = data.get('Subject')
             from_addr = str(data.get('From').split('<')[-1]).rstrip(">")
 
