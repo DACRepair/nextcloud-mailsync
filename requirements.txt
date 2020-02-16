@@ -1,2 +1,4 @@
 imapclient
 webdavclient
+beautifulsoup4
+jinja2

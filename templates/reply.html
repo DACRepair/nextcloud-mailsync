@@ -1,0 +1,28 @@
+<html>
+<head>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
+</head>
+<body>
+Your message has been processed and the following files have been uploaded:
+<br/>
+<table>
+    <tr>
+        <th>Sent File</th>
+        <th>Uploaded File</th>
+    </tr>
+    {% for item in message.attachments %}
+    <tr>
+        <td>{{ item }}</td>
+        <td>{{ message.date.strftime('%Y%m%d-%H%M%S') + "-" + item }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br/>
+Thank you.
+</body>
+</html>
