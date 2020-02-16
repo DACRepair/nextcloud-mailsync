@@ -10,9 +10,11 @@ class Config(ConfigParser):
         for item in [(x.replace(env_key, ''), y) for x, y in os.environ.items() if x.startswith(env_key)]:
             item, value = item
             section, option = item.split('__')
+            section = section.lower()
+            option = option.lower()
             if section not in self.sections():
-                self.add_section(section.lower())
-            self.set(section.lower(), option.lower(), value)
+                self.add_section(section)
+            self.set(section, option, value)
 
     def gen_conf_dict(self, section: str, obj=None):
         retr = {}
