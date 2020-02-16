@@ -41,16 +41,20 @@ class App:
                                                      message=message))
                 continue
 
-            self.log.info('Found Email: "{}" From: "{}" with attachments.'.format(message.subject, message.from_addr))
+            self.log.info('Found Email: "{}" From: "{}" with attachments...'.format(message.subject, message.from_addr))
             attachments.extend(self.mail.get_attachment(message.id, message.attachments))
             for file_name, local_path in attachments:
                 remote_path = self.dav_basepath + message.date.strftime('%Y%m%d-%H%M%S') + "-" + file_name
                 self.webdav.upload(remote_path, local_path)
+                self.log.info('Uploaded: {}'.format(remote_path))
+
             self.mail.send_mail(message.from_addr, "Document Manager: Success",
                                 self.mail.render('templates/reply.html', message=message))
+            self.log.info('Finished.')
         return len(messages)
 
     def run(self):
+        self.mail.imap.search()
         while True:
             self.log.info("Checking mail...")
             processed = self.sync()
